@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmation</title>
+    <link rel="stylesheet" href="styles-mobile.css">
+    <style>
+        /* CSS for header */
+        header {
+            background-color: #f8f9fa;
+            padding: 10px;
+            text-align: center;
+        }
+        .logo-container img {
+            max-width: 200px;
+        }
+
+        /* CSS for invoice */
+        .invoice {
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            max-width: 600px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .item {
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .item p {
+            margin: 5px 0;
+        }
+        .item:nth-child(odd) {
+            background-color: #f9f9f9; /* Alternate background color for odd items */
+        }
+
+        /* CSS for discount input */
+        .discount-input {
+            margin: 20px 20px 20px 0; /* Added margin to position it to the left */
+            max-width: 200px;
+            float: left; /* Float left to position it to the left */
+        }
+        .discount-input label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .discount-input input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* CSS for total */
+        .total {
+            text-align: left;
+            margin-top: 20px;
+            font-size: 18px;
+            clear: left; /* Clear left to prevent floating elements from overlapping */
+        }
+        .total p {
+            margin: 10px 0;
+        }
+        .total span {
+            font-weight: bold;
+            color: #253bff; /* Red color for emphasis */
+        }
+        .total-price {
+            margin: 10px auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            max-width: 600px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .remove-button {
+            color: red;
+            cursor: pointer;
+            float: right;
+        }
+        .remove-button {
+            color: red;
+            cursor: pointer;
+            float: right;
+            border-radius: 50%; /* Make the button round */
+            width: 20px; /* Set the width and height to ensure a round shape */
+            height: 20px;
+            text-align: center;
+            line-height: 20px; /* Center the text vertically */
+            background-color: #ffffff; /* Set background color */
+            border: 1px solid red; /* Add a border */
+        }
+        
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <img src="logo_remove.png" alt="THS Logo">
+        </div>
+    </header>
+
+    <div class="invoice" id="invoice">
+        <!-- Invoice content will be dynamically generated here -->
+    </div>
+
+    <!-- CSS cho cả Div-->
+    <div class="total-price">
+        <div class="discount-input">
+            <label for="discount">Discount (%):</label>
+            <input type="number" id="discount" min="0" step="0.01" value="0"> <!-- Default value set to 0 -->
+        </div>
+
+        <div class="total">
+            <p>Total: <span id="total"></span> đ</p>
+        </div>
+    </div>
+
+    <script>
+        // Retrieve cart data from URL parameter
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        const cartData = urlParams.get('cartData');
+
+        // Parse the JSON-encoded cart data
+        const cartItems = JSON.parse(decodeURIComponent(cartData));
+
+        // Function to generate the invoice HTML dynamically
+        function generateInvoice(cartItems) {
+            const invoiceDiv = document.getElementById('invoice');
+            invoiceDiv.innerHTML = ''; // Clear previous content
+            let subtotal = 0;
+
+            // Iterate over each item in the cart and generate HTML for it
+            cartItems.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.classList.add('item');
+
+                // Remove currency symbol and comma from the price string
+                const priceString = item.price.replace('đ', '').replace('.', '').replace(',', '.');
+
+                // Parse the price as a float
+                const price = parseFloat(priceString);
+
+                // Check if the price is a valid number
+                if (!isNaN(price)) {
+                    const itemSubtotal = price * item.quantity;
+                    itemDiv.innerHTML = `
+                        <p><strong>${item.name}</strong> 
+                        <p>${price.toLocaleString()} đ</p> <span class="remove-button" data-index="${index}">X</span></p>
+                        <p>Số lượng: ${item.quantity}</p>
+                        <p>Tạm tính: ${itemSubtotal.toLocaleString()} đ</p>
+                    `;
+
+                    // Add item subtotal to the total
+                    subtotal += itemSubtotal;
+                } else {
+                    // Handle invalid price
+                    itemDiv.innerHTML = `<p>Invalid price for item: ${item.name}</p>`;
+                }
+
+                // Apply background color to alternate items
+                if (index % 2 === 0) {
+                    itemDiv.style.backgroundColor = '#f9f9f9';
+                }
+
+                invoiceDiv.appendChild(itemDiv);
+            });
+
+            return subtotal;
+        }
+
+        // Call the function to generate the invoice and get the subtotal
+        let subtotal = generateInvoice(cartItems);
+
+        // Function to remove item from cart
+        function removeItem(index) {
+            cartItems.splice(index, 1); // Remove item from cart
+            subtotal = generateInvoice(cartItems); // Regenerate invoice
+            updateTotal(); // Update total
+        }
+
+        // Attach event listener to remove buttons
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('remove-button')) {
+                const index = parseInt(event.target.getAttribute('data-index'));
+                removeItem(index);
+            }
+        });
+
+        // Function to recalculate total when discount percentage is applied
+        function updateTotal() {
+            const discountPercent = parseFloat(document.getElementById('discount').value);
+            const totalDiv = document.getElementById('total');
+            const discountedTotal = subtotal * (1 - discountPercent / 100);
+            totalDiv.textContent = discountedTotal.toLocaleString();
+        }
+
+        // Attach event listener to discount input field
+        document.getElementById('discount').addEventListener('input', updateTotal);
+
+        // Display the initial total
+        updateTotal();
+    </script>
+</body>
+</html>
