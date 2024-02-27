@@ -140,8 +140,8 @@
                 const itemDiv = document.createElement('div');
                 itemDiv.classList.add('item');
 
-                // Remove currency symbol and comma from the price string
-                const priceString = item.price.replace('đ', '').replace('.', '').replace(',', '.');
+                // Remove currency symbol and all commas and dots from the price string
+                const priceString = item.price.replace('đ', '').replace(/[,|.]/g, '');
 
                 // Parse the price as a float
                 const price = parseFloat(priceString);
